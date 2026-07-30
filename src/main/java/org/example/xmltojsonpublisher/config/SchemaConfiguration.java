@@ -13,13 +13,16 @@ import java.io.File;
 import java.io.IOException;
 
 @Configuration
-public class ValidatorConfiguration {
+public class SchemaConfiguration {
 
+    /**
+     * Thread safe according to documentation @see <a href="https://docs.oracle.com/javase/7/docs/api/javax/xml/validation/Schema.html">Schema</a>
+     * thus define a bean of this type to be used for any schema validation instead of {@link Validator} which is not thread safe
+     */
     @Bean
-    public Validator validator() throws IOException, SAXException {
+    public Schema schema() throws IOException, SAXException {
         SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         File schemaFile = new ClassPathResource("xsd.xml").getFile();
-        Schema schema = schemaFactory.newSchema(schemaFile);
-        return schema.newValidator();
+        return schemaFactory.newSchema(schemaFile);
     }
 }
