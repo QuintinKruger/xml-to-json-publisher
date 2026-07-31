@@ -1,5 +1,6 @@
 package org.example.xmltojsonpublisher.web;
 
+import net.sf.saxon.s9api.SaxonApiException;
 import org.example.xmltojsonpublisher.service.TransformerService;
 import org.example.xmltojsonpublisher.validation.XmlValidator;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,7 @@ public class XmlToJsonPublisherController {
                 xmlValidator.validate(multipartFile);
                 transformerService.transform(new StreamSource(multipartFile.getInputStream()));
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), true, null));
-            } catch (SAXException | IOException e) {
+            } catch (SAXException | IOException | SaxonApiException e) {
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), false, e.getMessage()));
             }
 

@@ -24,21 +24,17 @@ public class TransformerService {
         this.transformer = transformer;
     }
 
-    public void transform(Source xmlSource) {
+    public void transform(Source xmlSource) throws SaxonApiException {
         // todo: see if we can set the error list to new empty list to capture any errors that
         // resulted from the transform that happens below (this was also why the XsltCompiler bean was defined)
         // this is to combat the Javadoc statement regarding error pollution for new processes using singletone bean
         // of compiler
-        try {
-            Serializer destination  = processor.newSerializer(new File("converted.json"));
-            destination.setOutputProperty(Serializer.Property.METHOD, "json");
-            destination.setOutputProperty(Serializer.Property.INDENT, "yes");
-            transformer.transform(xmlSource, destination);
-        } catch (SaxonApiException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
+        Serializer destination = processor.newSerializer(new File("converted.json"));
+        destination.setOutputProperty(Serializer.Property.METHOD, "json");
+        destination.setOutputProperty(Serializer.Property.INDENT, "yes");
+        transformer.transform(xmlSource, destination);
+    }
 
 
 }
