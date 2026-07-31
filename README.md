@@ -7,7 +7,7 @@
 3. XML validations using JAXP 
    * validation using Saxon-HE is not possible as this is an enterprise feature only
 4. XsltCompiler singleton created inspite of Javadoc mentioning error stream will be shared 
-   * Its thread safe, so no worries there
+   * Supports concurrency
    * Rather than building a new instance of compiler requiring the reprocessing of stylesheet everytime and hit on performance (micrometer test to be done to see processing time reused vs new instance - findings to be added here to motivate), accept pollution potential of errors
    * From testing, I could not see how errors could be used to report back to controller - thus decided if in future errors need to be reported back this will be relooked
 5. Xslt30Transformer transformer used rather than the XsltTransformer
@@ -275,5 +275,68 @@ Confirmed — xsd.xml sits flat in src/main/resources/, so I'll match that.
   Not wired up yet — no net.sf.saxon:Saxon-HE dependency in pom.xml, and no Xslt30Transformer code to actually run this. Given the pattern from your Schema/Validator setup, the natural
   next step would be a SaxonTransformer-style component with an XsltExecutable compiled once from this file as a singleton bean, and a cheap Xslt30Transformer created per call — happy
   to talk through that when you're ready, or you can take a first pass yourself first.
+
+```
+
+`prompt`: Please review the code I have sofar - specifically review the setup of the Saxon beans and how transformation is taking place. Please comment on the fact that a singleton bean has   
+been defined for the compiler when the Javadoc explicitly mentions this may lead to error log pollution across transformations. Consult my thinking as defined in the @README.md -    
+the sesion 'Decisions Made'. Please also comment on the todo i have added in @src/main/java/org/example/xmltojsonpublisher/service/TransformerService.java. Please dont comment on    
+the writing of the json content to file as this is still a WIP
+```
+The Saxon bean setup — one critical bug
+
+  Processor (singleton, new Processor(false) — correct, that's the HE/no-license-edition constructor) and XsltExecutable (singleton, compiled once at startup) are both fine as beans.
+  Saxonica's own docs confirm XsltExecutable is explicitly designed for this: "the XsltExecutable is immutable and thread-safe; it may be used to run multiple transformations, in
+  series or concurrently."
+
+  But SaxonConfiguration.java:36 defines Xslt30Transformer as a singleton bean via xsltExecutable.load30(), and TransformerService injects and reuses that same instance for every
+  transform() call. This is a real, serious bug — more severe than the earlier Validator one, because the Javadoc doesn't hedge on it:
+
+  ▎ "An Xslt30Transformer must not be used concurrently in multiple threads."
+
+  That's from Saxonica's own s9api documentation (Xslt30Transformer Javadoc). It's not "avoid if possible," it's "must not." The moment two upload requests land at the same time —
+  which, per your assignment's own Task 2 concurrency requirement, is the whole point — both threads will call .transform() on the same Xslt30Transformer object concurrently. This
+  isn't hypothetical: Saxonica's bug tracker has a real filed issue, Bug #4563: "Reuse of Xslt30Transformer causes wrong results (namespace)", for exactly this misuse pattern —
+  silently wrong output, not just a crash.
+                                                                              
+  Fix: same shape as your Schema→Validator fix. Inject XsltExecutable into TransformerService (not Xslt30Transformer), and call xsltExecutable.load30() fresh inside transform() per
+  invocation — cheap, and each request gets its own transformer instance.
+
+  The XsltCompiler singleton — your README reasoning is half right, for a reason that matters
+
+  I checked the actual Javadoc text your decision #4 is referencing:
+
+  ▎ "An XsltCompiler may in principle be used concurrently in multiple threads, but in practice this is best avoided because all instances will share the same ErrorListener and it may 
+  ▎ therefore be difficult to establish which error messages are associated with each compilation." (XsltCompiler Javadoc)
+
+  Note precisely what this is warning about: compilation-time error messages getting mixed up when compile() is called concurrently or repeatedly on a shared compiler. Now look at how
+  you're actually using it — SaxonConfiguration.xsltExecutable() calls xsltCompiler.compile(...) exactly once, during Spring's single-threaded bean-initialization at startup. There is
+  no second call, ever, for the lifetime of the application — one stylesheet, compiled once, cached forever as the XsltExecutable.
+
+  So the trade-off your README frames ("accept pollution potential of errors" vs. "hit on performance") isn't actually a trade-off you need to make at all, given this design — there's
+  nothing to pollute, because nothing ever calls compile() a second time concurrently with the first. Where this would start to matter: if you later added more stylesheets compiled
+  lazily/on-demand from multiple threads, or supported hot-reloading a stylesheet at runtime. Not your current architecture.
+
+  One small correction to the stated reasoning itself, since it doesn't quite match: "It's thread safe, so no worries there" isn't quite what the Javadoc says — it says concurrent use
+  is possible "in principle" but "best avoided" (a caveated warning, not a thread-safety guarantee). What actually makes you safe here isn't XsltCompiler's own thread-safety — it's
+  that you never invoke it more than once. Worth tightening that line in the README so the reasoning holds up if someone re-reads it later without re-deriving why it's actually fine. 
+  
+  The TODO in TransformerService.java:28-31
+
+  This one's aimed at the wrong object. The TODO wants to capture errors from the transform step by manipulating something on the XsltCompiler bean — but the compiler's ErrorListener
+  only ever sees compilation errors (XSLT syntax/static errors in judgment-to-json.xsl itself), not transformation-time errors (a given source document causing a dynamic error while
+  applyTemplates/transform runs against it). Those are two separate error channels in s9api, and by the time you're transforming a document, compilation is long finished — the
+  compiler's error listener is irrelevant at that point.
+
+  Good news: you already have the right type imported (XmlProcessingError, currently unused) — that's the s9api type for exactly this, and it's meant to be wired up via
+  Xslt30Transformer.setErrorReporter(...), on the transformer, not the compiler. And this falls out for free once you fix the concurrency bug above: once you're creating a fresh
+  Xslt30Transformer per call (xsltExecutable.load30() inside transform()), you naturally have a private, per-request transformer instance to attach a fresh error reporter to — no
+  cross-request pollution possible, no need to touch the XsltCompiler at all. The concurrency fix and what this TODO is reaching for are the same fix — worth deleting the TODO's
+  current framing once you make that change.
+
+  Sources:
+  - Xslt30Transformer Javadoc (Saxon 12)
+  - XsltCompiler Javadoc (Saxon 10)
+  - Saxonica Bug #4563: Reuse of Xslt30Transformer causes wrong results
 
 ```

@@ -29,11 +29,5 @@ public class SaxonConfiguration {
     @Bean
     public XsltExecutable xsltExecutable(XsltCompiler xsltCompiler) throws IOException, SaxonApiException {
         return xsltCompiler.compile(new StreamSource(new ClassPathResource("judgment-to-json.xsl").getInputStream()));
-
-    }
-
-    @Bean
-    public Xslt30Transformer xslt30Transformer(XsltExecutable xsltExecutable) {
-        return xsltExecutable.load30();
     }
 }
