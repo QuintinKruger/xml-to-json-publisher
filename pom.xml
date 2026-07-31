@@ -16,6 +16,7 @@
         <java.version>17</java.version>
         <springdoc-openapi-starter-webmvc-ui.version>2.8.9</springdoc-openapi-starter-webmvc-ui.version>
         <commons-io.version>2.20.0</commons-io.version>
+        <Saxon-HE.version>13.0</Saxon-HE.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,12 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>Saxon-HE</artifactId>
+            <version>${Saxon-HE.version}</version>
         </dependency>
     </dependencies>
 

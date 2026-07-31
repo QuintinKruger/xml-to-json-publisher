@@ -1,5 +1,6 @@
 package org.example.xmltojsonpublisher.web;
 
+import org.example.xmltojsonpublisher.service.TransformerService;
 import org.example.xmltojsonpublisher.validation.XmlValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Validator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +19,15 @@ import java.util.List;
 public class XmlToJsonPublisherController {
 
     private final XmlValidator xmlValidator;
+    private final TransformerService transformerService;
 
 
     private record FileOutcome(String fileName, boolean processedSuccessfully, String exceptionMessage) {
     }
 
-    public XmlToJsonPublisherController(XmlValidator xmlValidator) {
+    public XmlToJsonPublisherController(XmlValidator xmlValidator, TransformerService transformerService) {
         this.xmlValidator = xmlValidator;
+        this.transformerService = transformerService;
     }
 
     @PostMapping(value = "/upload-xml", consumes = "multipart/form-data")
@@ -34,6 +36,7 @@ public class XmlToJsonPublisherController {
         for (MultipartFile multipartFile : multipartFiles) {
             try {
                 xmlValidator.validate(multipartFile);
+                transformerService.transform(new StreamSource(multipartFile.getInputStream()));
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), true, null));
             } catch (SAXException | IOException e) {
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), false, e.getMessage()));
