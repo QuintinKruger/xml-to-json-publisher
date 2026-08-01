@@ -14,6 +14,11 @@
    * This is to leverage the XSLT 3.0 version capabilities required by the assignment
 6. XSLT JIT compilation not exabled as advised for production for improved performance
    * this can only be applied on a Saxon-EE license not Saxon-HE
+7. Define record rather than a POJO for NormalizedJudgment 
+   * immutable (by default final and no setters)
+   * No need for boilerplate code (getters, constructors)
+8. Saver as interface
+   * From the requirements, there could be multiple ways to save normalized content - an interface allows for open for extension and closed for modification principle to apply
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)
 

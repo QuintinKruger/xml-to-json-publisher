@@ -1,3 +1,6 @@
 spring:
   application:
     name: xml-to-json-publisher
+
+disk-saver:
+  path: ./normalized-json/

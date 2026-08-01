@@ -1,6 +1,8 @@
 package org.example.xmltojsonpublisher.web;
 
 import net.sf.saxon.s9api.SaxonApiException;
+import org.example.xmltojsonpublisher.core.saver.DiskSaver;
+import org.example.xmltojsonpublisher.core.saver.Saver;
 import org.example.xmltojsonpublisher.domain.NormalizedJudgment;
 import org.example.xmltojsonpublisher.service.TransformerService;
 import org.example.xmltojsonpublisher.validation.XmlValidator;
@@ -24,15 +26,16 @@ public class XmlToJsonPublisherController {
 
     private final XmlValidator xmlValidator;
     private final TransformerService transformerService;
-    private final Logger LOGGER = LoggerFactory.getLogger(XmlToJsonPublisherController.class);
+    private final Saver saver;
 
 
     private record FileOutcome(String fileName, boolean processedSuccessfully, String exceptionMessage) {
     }
 
-    public XmlToJsonPublisherController(XmlValidator xmlValidator, TransformerService transformerService) {
+    public XmlToJsonPublisherController(XmlValidator xmlValidator, TransformerService transformerService, Saver saver) {
         this.xmlValidator = xmlValidator;
         this.transformerService = transformerService;
+        this.saver = saver;
     }
 
     @PostMapping(value = "/upload-xml", consumes = "multipart/form-data")
@@ -42,10 +45,10 @@ public class XmlToJsonPublisherController {
             try {
                 xmlValidator.validate(multipartFile);
                 NormalizedJudgment normalizedJudgment = transformerService.transform(new StreamSource(multipartFile.getInputStream()));
-                LOGGER.info(String.valueOf(normalizedJudgment));
+                saver.saveNormalizedJudgement(normalizedJudgment);
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), true, null));
-            } catch (SAXException | IOException | SaxonApiException e) {
-                fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), false, e.getMessage()));
+            }  catch (Exception e) {
+                fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), false, "%s - %s".formatted(e.getClass().getSimpleName(), e.getMessage())));
             }
 
         }
