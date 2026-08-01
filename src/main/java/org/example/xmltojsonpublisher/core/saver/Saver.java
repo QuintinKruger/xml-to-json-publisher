@@ -7,4 +7,6 @@ public interface Saver {
     void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment, String identifier) throws Exception;
 
     void saveRagText(String  text, String identifier) throws Exception;
+
+    boolean exists(String identifier);
 }

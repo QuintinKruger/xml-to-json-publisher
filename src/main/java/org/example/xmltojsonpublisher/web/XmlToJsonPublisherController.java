@@ -6,6 +6,8 @@ import org.example.xmltojsonpublisher.core.transformer.rag.RagTransformer;
 import org.example.xmltojsonpublisher.domain.NormalizedJudgment;
 import org.example.xmltojsonpublisher.service.XmlProcessorService;
 import org.example.xmltojsonpublisher.validation.XmlValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,7 @@ public class XmlToJsonPublisherController {
 
     private final XmlValidator xmlValidator;
     private final XmlProcessorService xmlProcessorService;
+    private final Logger LOGGER = LoggerFactory.getLogger(XmlToJsonPublisherController.class);
 
 
     private record FileOutcome(String fileName, boolean processedSuccessfully, String exceptionMessage) {
@@ -41,6 +44,7 @@ public class XmlToJsonPublisherController {
                 xmlProcessorService.processXmlFile(multipartFile.getInputStream());
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), true, null));
             }  catch (Exception e) {
+                LOGGER.error("Failed to process file {}",multipartFile.getOriginalFilename(), e);
                 fileOutcomes.add(new FileOutcome(multipartFile.getOriginalFilename(), false, "%s - %s".formatted(e.getClass().getSimpleName(), e.getMessage())));
             }
 

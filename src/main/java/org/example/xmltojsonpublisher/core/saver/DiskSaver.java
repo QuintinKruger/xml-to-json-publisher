@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Component
 public class DiskSaver implements Saver {
@@ -20,13 +21,13 @@ public class DiskSaver implements Saver {
 
     public DiskSaver(@Value("${disk-saver.path}") String path, ObjectMapper objectMapper) {
         directory = new File(path);
-        directory.mkdirs();
         this.objectMapper = objectMapper;
     }
 
     @Override
     public void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment, String identifier) throws IOException {
-        File file = new File(directory, "%s.json".formatted(identifier));
+        File file = new File(directory, "%s/%s.json".formatted(identifier, identifier));
+        Files.createDirectories(Paths.get(file.getAbsolutePath()).getParent());
         if (file.exists()) {
             throw new FileAlreadyExistsException(file.getAbsolutePath());
         }
@@ -35,7 +36,8 @@ public class DiskSaver implements Saver {
 
     @Override
     public void saveRagText(String text, String identifier) throws IOException {
-        File file = new File(directory, "%s.txt".formatted(identifier));
+        File file = new File(directory, "%s/%s.txt".formatted(identifier, identifier));
+        Files.createDirectories(Paths.get(file.getAbsolutePath()).getParent());
         if (file.exists()) {
             throw new FileAlreadyExistsException(file.getAbsolutePath());
         }
@@ -44,5 +46,11 @@ public class DiskSaver implements Saver {
         }
 
 
+    }
+
+    @Override
+    public boolean exists(String identifier) {
+        File file = new File(directory, identifier);
+        return file.exists();
     }
 }
