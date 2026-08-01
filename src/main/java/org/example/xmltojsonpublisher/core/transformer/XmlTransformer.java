@@ -1,4 +1,4 @@
-package org.example.xmltojsonpublisher.service;
+package org.example.xmltojsonpublisher.core.transformer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.sf.saxon.s9api.Processor;
@@ -11,17 +11,16 @@ import org.springframework.stereotype.Service;
 
 import javax.xml.transform.Source;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 
 @Service
-public class TransformerService {
+public class XmlTransformer {
 
     private final XsltExecutable xsltExecutable;
     private final Processor processor;
     private final ObjectMapper objectMapper;
 
-    public TransformerService(Processor processor, XsltExecutable xsltExecutable, ObjectMapper objectMapper) {
+    public XmlTransformer(Processor processor, XsltExecutable xsltExecutable, ObjectMapper objectMapper) {
         this.processor = processor;
         this.xsltExecutable = xsltExecutable;
         this.objectMapper = objectMapper;

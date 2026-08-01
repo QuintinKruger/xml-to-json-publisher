@@ -4,5 +4,7 @@ import org.example.xmltojsonpublisher.domain.NormalizedJudgment;
 
 public interface Saver {
 
-    void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment) throws Exception;
+    void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment, String identifier) throws Exception;
+
+    void saveRagText(String  text, String identifier) throws Exception;
 }

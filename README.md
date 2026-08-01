@@ -19,6 +19,15 @@
    * No need for boilerplate code (getters, constructors)
 8. Saver as interface
    * From the requirements, there could be multiple ways to save normalized content - an interface allows for open for extension and closed for modification principle to apply
+9. RagTransformer interface
+   * From reading up, it seems there are mutliple ways to return RAG content. Defining an interface makes sure we can have multiple different strategies (concrete implementations) alongside one another for easy swap out as required. 
+10. StrategyOneRagTransformer, use title and paragraph content. Each new line split by \n\n
+   * paragraphs attribute of normalized json content is already RAG ready, we can simply use it for the RAG/AI ingestion for the json content
+   * title used as header to provide document level context (it already contains the date and court already)
+   * RAG ready text files are separated by \n\n, this makes sure the file is ready to go for the RAG system this is intended for
+11. Explicit use of UTF-8
+   * ensure default system encodings are not used but the application specified ones are 
+   * because of French accented text this is vital to not assume the default on a machine is UTF-8 - will fail silently on systems that don't have this configuration
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)
 
@@ -344,4 +353,95 @@ The Saxon bean setup — one critical bug
   - XsltCompiler Javadoc (Saxon 10)
   - Saxonica Bug #4563: Reuse of Xslt30Transformer causes wrong results
 
+```
+`prompt`: I am new to AI/RAG - as per the requirement, in addition to my saving of normalized json jugments to disk, I am required to produce plain text suitable for AI/RAG. What must i       
+consider for the text file I will save alongside the json file ?Please provide any references for further reading 
+```
+Good instinct to pause on this — a few considerations, roughly in order of how much they'll actually matter for your assignment vs. being "nice to know."
+
+  What matters most
+
+  1. Preserve paragraph boundaries — don't flatten to one line. Downstream RAG pipelines don't embed a whole document as one vector; they split it into smaller chunks first, and
+  chunking algorithms (LangChain's default splitter, for example) key off structural markers like double-newlines to find sensible split points. If you join everything with a single
+  space, you've destroyed that structure before it ever reaches the chunker — whatever splits it next has to guess sentence/paragraph boundaries. Since the assignment's sample
+  full_text field in the JSON happens to use single-space joining (matching their exact example), that's fine to keep for the JSON field — but the separate .txt artifact isn't bound to
+  match that same format. Consider joining paragraphs with \n\n there instead, so paragraph structure survives into the file that's actually meant for RAG ingestion.
+
+  2. Keep the embedded text clean — carry metadata alongside it, not inside it. A common mistake is stuffing structured info (court name, date, paragraph id) directly into the text
+  you're going to embed, e.g. [section: reasons] Considérant que.... Embedding models are trained on natural prose; injected markup dilutes the semantic signal rather than helping it.
+  The better-established pattern: keep the .txt as clean natural-language text, and let whatever indexes it later pull structured metadata (court, jurisdiction, decision_date,
+  paragraph id/section) from the sibling JSON record — which you're already producing and already has all of this. That's exactly why keying both artifacts by the same content_id (e.g.
+  {content_id}.json / {content_id}.txt in the same folder) matters: it's the join key a downstream ingestion job uses to reattach metadata to the plain text without polluting the text
+  itself.
+
+  3. UTF-8, explicitly. Same theme as our earlier text/xml vs application/xml discussion — your content is French legal text full of accented characters (Société, Considérant, appel).
+  Write the file with UTF-8 explicitly declared (Files.writeString(path, text, StandardCharsets.UTF_8)), not the JVM's platform-default charset, or you risk silent corruption on a
+  machine whose default charset isn't UTF-8.
+
+  Worth knowing, lower priority for this assignment
+
+  Your JSON's paragraphs[] array is arguably more RAG-ready than the flat .txt file. Each entry already carries its own id and section alongside the text — that's essentially
+  pre-chunked, pre-labeled data. A real ingestion pipeline could iterate that array directly to create one chunk-with-metadata per paragraph, no chunking algorithm needed at all. The
+  flat .txt file is more of a "simple whole-document" artifact (useful for full-text search, human review, or a naive ingestion path) — worth having both, but recognize they serve
+  different downstream roles, and it's worth a sentence or two on this distinction in your SOLUTION.md's "how would this feed a RAG pipeline later" section.
+
+  Contextual chunks retrieve better than bare ones. Anthropic published research (Sept 2024) showing that prepending a short explanatory context to each chunk before embedding — e.g.
+  "This is from Cour d'appel de Paris's judgment FR-2024-CA-000123, section reasons" — cut retrieval failures by up to 49%, because an isolated chunk stripped of surrounding context is
+  often ambiguous on its own. Not something to implement now, but a good thing to reference in SOLUTION.md as a future evolution step, since it's a well-known, credible technique for
+  exactly the kind of "how would you improve this for RAG" question your brief asks.
+                                                                              
+  Unicode normalization form, briefly: accented characters can be represented as either a single composed codepoint or a base letter + combining accent — visually identical,
+  byte-different. Given how much accented French text you have, if you ever do exact-string matching downstream, normalizing to NFC consistently avoids subtle mismatches. Not urgent
+  for this assignment, just worth knowing exists.
+  
+  References
+
+  - Anthropic — Contextual Retrieval — the chunk-isolation problem and prepending context before embedding, with concrete before/after retrieval-failure numbers.
+  - Pinecone — Chunking Strategies for LLM Applications — solid overview of chunking approaches (fixed-size, recursive, semantic, page-level) and the trade-offs between them.
+  - Pinecone — Retrieval-Augmented Generation (RAG) — good general primer if you want the broader RAG picture beyond just text prep.
+
+```
+`prompt`: Considering the paragraphs array, what would a typical RAG ready text file then look like ? I am trying to get to a soultion to the requirement that RAG ready content be written to  
+a text file 
+```
+Given the paragraphs[] array already carries id/section/text per paragraph, here's a concrete shape:
+
+  Cour d'appel de Paris, 12 mars 2024, n° 20/01234
+
+  Le litige porte sur...
+
+  Considérant que...
+
+  Attendu que...
+
+  Par ces motifs...
+
+  The reasoning behind each choice:
+
+  - Title as a one-line header, then blank line, then body. A single line of document-level context costs almost nothing and gives a downstream chunker/reader something to anchor to
+  (this is a light-touch version of the "contextual retrieval" idea from before — full per-chunk context generation is overkill here, but a document-level header is nearly free). I
+  didn't also add court/date on that line since the title already contains them in this document — no need to repeat.
+  - Paragraphs joined by blank lines (\n\n), not a single space. This directly answers what a "typical" RAG-ready text file looks like — paragraph-aware chunkers (LangChain's default
+  splitter, for instance) split on \n\n first, so this format is already structured the way downstream tooling expects, without you doing any chunking yourself.
+  - No inline tags for id/section. Consistent with what we covered last time — don't dilute the text you're going to embed with structural markup. If a downstream consumer needs
+  p3/reasons for a specific piece of text, that's a lookup in the sibling JSON's paragraphs[], not something to re-derive by parsing the .txt. Since you write the .txt paragraphs in
+  the same order as the JSON array, positional correlation between the two is reliable if anyone needs it later — worth a line in SOLUTION.md documenting that pairing convention.
+
+  Building it
+
+  You don't need a second XSLT/Saxon transform for this — you already have a NormalizedJudgment Java object from the JSON deserialization step, so this is now just plain Java
+  string-joining:
+
+  public String buildRagText(NormalizedJudgment judgment) {
+      String body = judgment.paragraphs().stream()
+          .map(NormalizedJudgment.Paragraph::text)
+          .collect(Collectors.joining("\n\n"));
+      return judgment.title() + "\n\n" + body;
+  }
+
+  Then write it out explicitly as UTF-8, same reasoning as before:
+  Files.writeString(outputPath.resolve(judgment.content_id() + ".txt"), text, StandardCharsets.UTF_8);
+  Where this lives is your call — a small dedicated method/class (something like a RagTextExtractor) keeps it separate from TransformerService's job (XML→structured record), rather
+  than growing that class to also own plain-text derivation. Since it operates purely on NormalizedJudgment — no Saxon, no XML — it doesn't really belong next to the transform logic
+  anyway.
 ```

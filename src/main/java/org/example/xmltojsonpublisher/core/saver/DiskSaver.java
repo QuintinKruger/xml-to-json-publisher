@@ -6,8 +6,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
 
 @Component
 public class DiskSaver implements Saver {
@@ -22,11 +25,24 @@ public class DiskSaver implements Saver {
     }
 
     @Override
-    public void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment) throws IOException {
-        File file = new File(directory, "%s.json".formatted(normalizedJudgment.contentId()));
+    public void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment, String identifier) throws IOException {
+        File file = new File(directory, "%s.json".formatted(identifier));
         if (file.exists()) {
             throw new FileAlreadyExistsException(file.getAbsolutePath());
         }
         objectMapper.writeValue(file, normalizedJudgment);
+    }
+
+    @Override
+    public void saveRagText(String text, String identifier) throws IOException {
+        File file = new File(directory, "%s.txt".formatted(identifier));
+        if (file.exists()) {
+            throw new FileAlreadyExistsException(file.getAbsolutePath());
+        }
+        try (FileWriter fileWriter = new FileWriter(file, StandardCharsets.UTF_8)) {
+            fileWriter.write(text);
+        }
+
+
     }
 }
