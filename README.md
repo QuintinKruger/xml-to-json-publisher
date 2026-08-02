@@ -40,9 +40,51 @@
 ## Memory Growth
 * Prevented the uploading of files larger than 1MB per file (default spring boot value, although configurable in application.yaml) and 10MB per request
 * [AsyncConfiguration](./src/main/java/org/example/xmltojsonpublisher/config/AsyncConfiguration.java) setup to have a max queue capacity equal to thread pool size, this prevents unbounded queuing of requests in memory for requests waiting to be processed by thread pool
-
+* There is a limitation to the Saxon-HE version of Saxon used where the DOM tree is loaded in full into memory when transformations are performed. Saxon-EE allows for systematic loading of DOM tree into memory when needed to optimize memory usage.
 ## Containerizing Application
 The application can be containerized by running `mvn compile jib:dockerBuild`. This will build the application using the base image `sapmachine:17-jdk-ubuntu` and publish it to the local docker registry. Note that docker needs to be installed on the machine for this command to work.
+
+## Deploying to Cloud
+1. Containerize the application and upload it to a container registry
+   * ensure the `<image>` defined in [pom.xml](./pom.xml) under `jib-maven-plugin` specifies the registry and image name (for development purposes it is set to be org.example/${project.build.finalName} which will not work as there exists no such remote registry)
+   * run `mvn compile jib:build` (because no remote registry exists, for locally containerizing, run `mvn compile jib:dockerBuild` - this requires docker to be installed on machine)
+2. Using Cloud Run (a GCP service), deploy the container on the cloud:
+   * Go to cloud run service through the web console 
+   * Select to deploy a container 
+   * Provide the location of the container hosted by your chosen registry as per 1. 
+   * Specify container port as 8080 (this is the ) - this will expose it on the external IP provided when deployed
+   * Provide the environment variable `DISK_SAVER_PATH` specifying the location on disk to save transformed XML and RAG files
+   * Provide the environment variable `ASYNC_POOL_SIZE` that specifies the thread pool size for the application 
+   * Finally, 'Create' and 'Deploy' the containerized application 
+
+## System Health
+* The spring-boot-starter-actuator dependency is on the class path, this allows the querying of application health at `localhost:8080/actuator/health`
+* Furthermore, the /metrics endpoint has been exposed to give us application metrics that will allow us to assess system health as well as expose points of improvements. Amongst the metrics that can be used, the most important worth pointing out are:
+  1. executor.* - thread pool executor metrics (the core of this application) that tells us the number of active threads, number of threads processed up until this point, threads in queue etc.
+* Additionally - the prometheus actuator endpoint has also been exposed to aggregate metric information of the application over time. A GUI like Grafana can allow visualizations of this data overtime
+
+## Processing
+* The POST endpoint accepts a multipart/form-data body where multiple files can be included as different parts in the body. This allows bulk uploading of XML files to be processed.
+* There is a limit of 1MB per file and 10MB total request size for the multipart/form-data request that prevents users from overloading the application
+* Furthermore, there is configuration of the number of threads to spawn for processing of a file. Each file is processed in a seaprate thread. Consideration has been taken regarding:
+  1. Thread-safety between files being processed
+  2. Locking at a content ID level to prevent the processing of the same item amongst multiple threads 
+
+## Inputs and Outputs 
+### Input
+File uploads are expected via the POST endpoints - this serves as the sole input to the service 
+### Output
+Each input file processed has its corresponding output located at the `$DISK_SAVER_PATH/<content-id>` where `$DISK_SAVER_PATH` is the environment provided base directory of outputs.
+Stored in each content-id folder is:
+1. <content-id>.json - represents the normalized JSON version of the XML file processed for that content-id object
+2. <content-id>.txt - represents the RAG text of the XML file processed for that content-id object
+Duplicate records are prevented via validation when a new XML file is processed - if a directory with the name of the content-id being processed already exists. Re-processing of the file is prevented
+
+## RAG pipeline 
+Future adaption of this application sees the publishing of RAG content stored for each content-id output to a RAG service. 
+I would imagine an HTTP service can be called whereby the RAG text files and meta files (normalized JSON files) get POSTed for the RAG service to consume.
+An alternative could include, as part of the save process flow an extension to publish the files to a Google Cloud Storage bucket - in essence a filesystem - from which the RAG service could consume 
+The RAG service can use the text file to chunk against the normalized JSON file that will act as meta-data to be stored in the vector database. 
 
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)

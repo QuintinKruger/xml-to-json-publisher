@@ -3,8 +3,14 @@ spring:
     name: xml-to-json-publisher
 
 disk-saver:
-  path: ./normalized-json/
+  path: ${DISK_SAVER_PATH}
 
 async:
-  pool-size: 2
+  pool-size: ${ASYNC_POOL_SIZE}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "metrics,prometheus"
 
