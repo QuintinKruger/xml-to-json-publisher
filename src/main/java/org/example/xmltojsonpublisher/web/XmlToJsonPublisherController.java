@@ -27,7 +27,7 @@ public class XmlToJsonPublisherController {
     ResponseEntity<List<FileOutcome>> uploadXml(@RequestParam("file") MultipartFile[] multipartFiles) throws IOException {
         List<CompletableFuture<FileOutcome>> futures = new ArrayList<>();
         for (MultipartFile multipartFile : multipartFiles) {
-            futures.add(xmlProcessorService.processXmlFile(multipartFile.getOriginalFilename(), multipartFile.getBytes()));
+            futures.add(xmlProcessorService.processXmlContent(multipartFile.getOriginalFilename(), multipartFile.getBytes()));
         }
         return new ResponseEntity<>(futures.stream().map(CompletableFuture::join).toList(), HttpStatus.OK);
     }
