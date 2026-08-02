@@ -4,3 +4,6 @@ spring:
 
 disk-saver:
   path: ./normalized-json/
+
+async:
+  pool-size: 10

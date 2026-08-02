@@ -28,13 +28,4 @@ public class JavaxXmlConfiguration {
         File schemaFile = new ClassPathResource("xsd.xml").getFile();
         return schemaFactory.newSchema(schemaFile);
     }
-
-    @Bean
-    public XMLInputFactory xmlInputFactory() {
-        XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
-        // disable DTD support to prevent against XML External Entity (XXE) injection attack and the exponential entity expansion attack, also know as the XML bomb or billion laughs attack.
-        xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        xmlInputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        return xmlInputFactory;
-    }
 }

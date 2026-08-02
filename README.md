@@ -30,6 +30,8 @@
    * because of French accented text this is vital to not assume the default on a machine is UTF-8 - will fail silently on systems that don't have this configuration
 12. Turn of DTD support 
    * XML External Entity (XXE) injection attack and the exponential entity expansion attack, also know as the XML bomb or billion laughs attack are possible if DTD (Document Type Definition) is supported for XML parsers
+13. XMLFactory create new rather than used as singleton
+   * Because of internal caching mechanism used, there is no guarantee that its thread safe
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)
 - [12 Java API for XML Processing (JAXP) Security Guide](https://docs.oracle.com/en/java/javase/24/security/java-api-xml-processing-jaxp-security-guide.html#GUID-6E76FE41-A8C5-4F56-AB46-83A89B1E904A)
