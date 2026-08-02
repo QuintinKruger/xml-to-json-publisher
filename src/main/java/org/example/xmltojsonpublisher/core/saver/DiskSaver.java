@@ -25,28 +25,22 @@ public class DiskSaver implements Saver {
     }
 
     @Override
-    public void saveNormalizedJudgement(NormalizedJudgment normalizedJudgment, String identifier) throws IOException {
-        File file = new File(directory, "%s/%s.json".formatted(identifier, identifier));
-        Files.createDirectories(Paths.get(file.getAbsolutePath()).getParent());
-        if (file.exists()) {
-            throw new FileAlreadyExistsException(file.getAbsolutePath());
+    public void save(NormalizedJudgment normalizedJudgment, String ragText, String identifier) throws IOException {
+        File judgementDirectory = new File(directory, identifier);
+        Files.createDirectories(judgementDirectory.toPath());
+        File jsonFile = new File(judgementDirectory, "%s.json".formatted(identifier));
+        File ragFile = new File(judgementDirectory, "%s.txt".formatted(identifier));
+        objectMapper.writeValue(jsonFile, normalizedJudgment);
+        try (FileWriter fileWriter = new FileWriter(ragFile, StandardCharsets.UTF_8)) {
+            fileWriter.write(ragText);
         }
-        objectMapper.writeValue(file, normalizedJudgment);
     }
-
-    @Override
-    public void saveRagText(String text, String identifier) throws IOException {
-        File file = new File(directory, "%s/%s.txt".formatted(identifier, identifier));
-        Files.createDirectories(Paths.get(file.getAbsolutePath()).getParent());
-        if (file.exists()) {
-            throw new FileAlreadyExistsException(file.getAbsolutePath());
-        }
-        try (FileWriter fileWriter = new FileWriter(file, StandardCharsets.UTF_8)) {
-            fileWriter.write(text);
-        }
-
-
-    }
+    // todo: perhaps move out to saveRagText and saveNormalizedJudgment
+    // move save to interface, update interface to be abstract, it should call
+    // saveRagText and saveNormalized - accept that  File judgementDirectory = new File(directory, identifier);
+    // Files.createDirectories(judgementDirectory.toPath()); will be duplicated - in context of both these functions
+    // both are unaware that the directory exists - one will create it and the other one wont require creation
+    // that we know from context of how the save is setup - not something the individual methods know which is fine I guess
 
     @Override
     public boolean exists(String identifier) {

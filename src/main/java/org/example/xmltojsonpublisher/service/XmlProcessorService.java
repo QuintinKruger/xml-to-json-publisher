@@ -25,7 +25,6 @@ public class XmlProcessorService {
     public void processXmlFile(InputStream inputStream) throws Exception {
         NormalizedJudgment normalizedJudgment = xmlTransformer.transform(new StreamSource(inputStream));
         String ragText = ragTransformer.transform(normalizedJudgment);
-        saver.saveNormalizedJudgement(normalizedJudgment, normalizedJudgment.contentId());
-        saver.saveRagText(ragText, normalizedJudgment.contentId());
+        saver.save(normalizedJudgment, ragText, normalizedJudgment.contentId());
     }
 }
