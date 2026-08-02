@@ -40,7 +40,9 @@
 ## Memory Growth
 * Prevented the uploading of files larger than 1MB per file (default spring boot value, although configurable in application.yaml) and 10MB per request
 * [AsyncConfiguration](./src/main/java/org/example/xmltojsonpublisher/config/AsyncConfiguration.java) setup to have a max queue capacity equal to thread pool size, this prevents unbounded queuing of requests in memory for requests waiting to be processed by thread pool
-* Considered not performing transformation 
+
+## Containerizing Application
+The application can be containerized by running `mvn compile jib:dockerBuild`. This will build the application using the base image `sapmachine:17-jdk-ubuntu` and publish it to the local docker registry. Note that docker needs to be installed on the machine for this command to work.
 
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)

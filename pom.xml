@@ -17,6 +17,7 @@
         <springdoc-openapi-starter-webmvc-ui.version>2.8.9</springdoc-openapi-starter-webmvc-ui.version>
         <commons-io.version>2.20.0</commons-io.version>
         <Saxon-HE.version>13.0</Saxon-HE.version>
+        <jib-maven-plugin.version>3.5.1</jib-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -55,10 +56,24 @@
     </dependencies>
 
     <build>
+        <finalName>xml-to-json-publisher</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <configuration>
+                    <from>
+                        <image>sapmachine:17-jdk-ubuntu</image>
+                    </from>
+                    <to>
+                        <image>org.example/${project.build.finalName}:${project.version}</image>
+                    </to>
+                </configuration>
             </plugin>
         </plugins>
     </build>
