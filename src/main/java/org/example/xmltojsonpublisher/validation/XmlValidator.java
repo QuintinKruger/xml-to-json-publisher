@@ -3,15 +3,9 @@ package org.example.xmltojsonpublisher.validation;
 import org.example.xmltojsonpublisher.core.saver.Saver;
 import org.example.xmltojsonpublisher.exception.AlreadyProcessedException;
 import org.example.xmltojsonpublisher.util.XmlUtil;
-import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
@@ -31,8 +25,8 @@ public class XmlValidator {
         this.saver = saver;
     }
 
-    public void validate(byte[] xmlBytes) throws IOException, XMLStreamException, SAXException {
-        validateNotPreviouslyProcessed(new ByteArrayInputStream(xmlBytes));
+    public void validateCanProcess(String contentId, byte[] xmlBytes) throws IOException, SAXException {
+        validateNotPreviouslyProcessed(contentId);
         validateSchema(new ByteArrayInputStream(xmlBytes));
     }
 
@@ -40,10 +34,9 @@ public class XmlValidator {
         getSchemaValidator().validate(new StreamSource(inputStream));
     }
 
-    public void validateNotPreviouslyProcessed(InputStream inputStream) throws XMLStreamException {
-        Optional<String> optionalContentId = XmlUtil.getXmlAttributeValueFromStream("content_id", inputStream);
-        if (optionalContentId.isPresent() && saver.exists(optionalContentId.get())) {
-            throw new AlreadyProcessedException(optionalContentId.get());
+    public void validateNotPreviouslyProcessed(String contentId) {
+        if (saver.exists(contentId)) {
+            throw new AlreadyProcessedException(contentId);
         }
 
     }
@@ -53,4 +46,12 @@ public class XmlValidator {
     }
 
 
+    public String validateContentId(byte[] bytes) {
+        Optional<String> optionalContentId = XmlUtil.getXmlAttributeValueFromStream("content_id", new ByteArrayInputStream(bytes));
+        if (optionalContentId.isEmpty() || optionalContentId.get().isBlank()) {
+            throw new IllegalArgumentException("Content ID is empty.");
+        }
+        return optionalContentId.get();
+
+    }
 }

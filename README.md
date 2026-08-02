@@ -32,6 +32,8 @@
    * XML External Entity (XXE) injection attack and the exponential entity expansion attack, also know as the XML bomb or billion laughs attack are possible if DTD (Document Type Definition) is supported for XML parsers
 13. XMLFactory create new rather than used as singleton
    * Because of internal caching mechanism used, there is no guarantee that its thread safe
+14. Reentrant Lock Rather than Another
+   * the alternatives are Write- or ReadLock, we perform both reading and writing so the logical lock to use is neither which might restrict one operation or the other
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)
 - [12 Java API for XML Processing (JAXP) Security Guide](https://docs.oracle.com/en/java/javase/24/security/java-api-xml-processing-jaxp-security-guide.html#GUID-6E76FE41-A8C5-4F56-AB46-83A89B1E904A)

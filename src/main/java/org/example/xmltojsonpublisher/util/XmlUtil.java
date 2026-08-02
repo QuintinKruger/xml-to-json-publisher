@@ -1,5 +1,8 @@
 package org.example.xmltojsonpublisher.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -9,19 +12,27 @@ import java.util.Optional;
 
 public class XmlUtil {
 
-    public static Optional<String> getXmlAttributeValueFromStream(String attribute, InputStream inputStream) throws XMLStreamException {
-        XMLStreamReader xmlStreamReader = getXmlInputFactory().createXMLStreamReader(inputStream);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XmlUtil.class);
+
+    public static Optional<String> getXmlAttributeValueFromStream(String attribute, InputStream inputStream) {
         try {
-            while (xmlStreamReader.hasNext()) {
-                if (xmlStreamReader.next() == XMLStreamConstants.START_ELEMENT
-                        && attribute.equals(xmlStreamReader.getLocalName())) {
-                    return Optional.of(xmlStreamReader.getElementText());
+            XMLStreamReader xmlStreamReader = getXmlInputFactory().createXMLStreamReader(inputStream);
+            try {
+                while (xmlStreamReader.hasNext()) {
+                    if (xmlStreamReader.next() == XMLStreamConstants.START_ELEMENT
+                            && attribute.equals(xmlStreamReader.getLocalName())) {
+                        return Optional.of(xmlStreamReader.getElementText());
+                    }
                 }
+                return Optional.empty();
+            } finally {
+                xmlStreamReader.close();
             }
+        } catch (XMLStreamException e) {
+            LOGGER.error("Failed to get attribute {} from XML inputstream.", attribute, e);
             return Optional.empty();
-        } finally {
-            xmlStreamReader.close();
         }
+
     }
 
     private static XMLInputFactory getXmlInputFactory() {
