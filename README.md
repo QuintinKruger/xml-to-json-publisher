@@ -34,6 +34,14 @@
    * Because of internal caching mechanism used, there is no guarantee that its thread safe
 14. Reentrant Lock Rather than Another
    * the alternatives are Write- or ReadLock, we perform both reading and writing so the logical lock to use is neither which might restrict one operation or the other
+15. multipart/form-data used as body type in POST endpoint
+   * Allow for limiting the size of XML files to be processed (default for spring boot is 1MB) and overall request body size (default for spring boot is 10MB)
+
+## Memory Growth
+* Prevented the uploading of files larger than 1MB per file (default spring boot value, although configurable in application.yaml) and 10MB per request
+* [AsyncConfiguration](./src/main/java/org/example/xmltojsonpublisher/config/AsyncConfiguration.java) setup to have a max queue capacity equal to thread pool size, this prevents unbounded queuing of requests in memory for requests waiting to be processed by thread pool
+* Considered not performing transformation 
+
 ## References 
 - [s9api](https://www.saxonica.com/html/documentation12/using-xsl/embedding/s9api-transformation.html)
 - [12 Java API for XML Processing (JAXP) Security Guide](https://docs.oracle.com/en/java/javase/24/security/java-api-xml-processing-jaxp-security-guide.html#GUID-6E76FE41-A8C5-4F56-AB46-83A89B1E904A)

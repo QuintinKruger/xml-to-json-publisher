@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <judgment xmlns="urn:lex:content:1">
+        <header>
+            <content_id>FR-2024-TJ-001011</content_id>
+            <title>Tribunal judiciaire de Marseille, 2 octobre 2024, n° 23/01011</title>
+            <court>Tribunal judiciaire de Marseille</court>
+            <jurisdiction>FR</jurisdiction>
+            <decision_date>2024-10-02</decision_date>
+            <citations>
+                <citation type="ECLI">ECLI:FR:TJMARSEILLE2024001011</citation>
+            </citations>
+            <parties>
+                <party role="appellant">M. Bertrand</party>
+                <party role="respondent">Compagnie d'Assurances Générales</party>
+            </parties>
+        </header>
+        <body>
+            <section type="facts">
+                <p id="p1">Le demandeur a été victime d'un sinistre survenu le 3 janvier 2024...</p>
+            </section>
+            <section type="reasons">
+                <p id="p2">Considérant que la garantie souscrite couvre le sinistre invoqué...</p>
+            </section>
+            <section type="disposition">
+                <p id="p3">Par ces motifs, condamne la compagnie d'assurances à indemniser...</p>
+            </section>
+        </body>
+    </judgment>

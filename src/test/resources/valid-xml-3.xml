@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <judgment xmlns="urn:lex:content:1">
+        <header>
+            <content_id>FR-2024-CC-000789</content_id>
+            <title>Cour de cassation, chambre commerciale, 15 septembre 2024, n° 22/09876</title>
+            <court>Cour de cassation</court>
+            <jurisdiction>FR</jurisdiction>
+            <decision_date>2024-09-15</decision_date>
+            <citations>
+                <citation type="ECLI">ECLI:FR:CCASS2024C00789</citation>
+            </citations>
+            <parties>
+                <party role="appellant">Banque Continentale SA</party>
+                <party role="respondent">Société Meunier Frères</party>
+            </parties>
+        </header>
+        <body>
+            <section type="facts">
+                <p id="p1">La société Meunier Frères a souscrit un emprunt auprès de la banque...</p>
+            </section>
+            <section type="reasons">
+                <p id="p2">Attendu que la clause litigieuse doit s'interpréter...</p>
+                <p id="p3">Attendu que la cour d'appel a exactement déduit...</p>
+                <p id="p4">Attendu, enfin, que le moyen manque en fait...</p>
+            </section>
+            <section type="disposition">
+                <p id="p5">Par ces motifs, rejette le pourvoi...</p>
+            </section>
+        </body>
+    </judgment>

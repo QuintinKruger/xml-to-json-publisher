@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 public class AsyncConfiguration {
@@ -15,6 +16,8 @@ public class AsyncConfiguration {
         ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
         threadPoolTaskExecutor.setCorePoolSize(poolSize);
         threadPoolTaskExecutor.setMaxPoolSize(poolSize);
+        threadPoolTaskExecutor.setQueueCapacity(poolSize);
+        threadPoolTaskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         threadPoolTaskExecutor.initialize();
         return threadPoolTaskExecutor;
     }

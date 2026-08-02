@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <judgment xmlns="urn:lex:content:1">
+        <header>
+            <content_id>FR-2024-CA-000456</content_id>
+            <title>Cour d'appel de Lyon, 4 juin 2024, n° 21/04567</title>
+            <court>Cour d'appel de Lyon</court>
+            <jurisdiction>FR</jurisdiction>
+            <decision_date>2024-06-04</decision_date>
+            <citations>
+                <citation type="ECLI">ECLI:FR:CA67890</citation>
+                <citation type="NOR">NOR:EFGH2345678</citation>
+            </citations>
+            <parties>
+                <party role="appellant">Établissements Rousseau SARL</party>
+                <party role="respondent">Mme Lefebvre</party>
+            </parties>
+        </header>
+        <body>
+            <section type="facts">
+                <p id="p1">Le contrat de bail commercial conclu entre les parties...</p>
+            </section>
+            <section type="reasons">
+                <p id="p2">Considérant que le preneur n'a pas respecté...</p>
+                <p id="p3">Considérant en outre que les loyers restent dus...</p>
+            </section>
+            <section type="disposition">
+                <p id="p4">Par ces motifs, la cour confirme le jugement entrepris...</p>
+            </section>
+        </body>
+    </judgment>

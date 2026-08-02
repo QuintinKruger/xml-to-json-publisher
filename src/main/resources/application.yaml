@@ -6,4 +6,5 @@ disk-saver:
   path: ./normalized-json/
 
 async:
-  pool-size: 10
+  pool-size: 2
+

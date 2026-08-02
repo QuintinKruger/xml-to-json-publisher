@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <judgment xmlns="urn:lex:content:1">
+        <header>
+            <content_id>FR-2024-CE-000234</content_id>
+            <title>Conseil d'État, 10 décembre 2024, n° 470234</title>
+            <court>Conseil d'État</court>
+            <jurisdiction>FR</jurisdiction>
+            <decision_date>2024-12-10</decision_date>
+            <citations>
+                <citation type="ECLI">ECLI:FR:CE2024470234</citation>
+            </citations>
+            <parties>
+                <party role="appellant">Association de Défense des Riverains</party>
+                <party role="respondent">Ministre de la Transition écologique</party>
+            </parties>
+        </header>
+        <body>
+            <section type="facts">
+                <p id="p1">L'association requérante demande l'annulation de l'arrêté préfectoral...</p>
+            </section>
+            <section type="reasons">
+                <p id="p2">Considérant que l'étude d'impact produite est suffisante...</p>
+                <p id="p3">Considérant, toutefois, que la procédure de consultation publique...</p>
+            </section>
+            <section type="disposition">
+                <p id="p4">Par ces motifs, annule l'arrêté préfectoral en tant qu'il...</p>
+            </section>
+        </body>
+    </judgment>
