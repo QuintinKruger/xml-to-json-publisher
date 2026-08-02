@@ -1,0 +1,117 @@
+@startuml process-flow
+title XML to JSON Publisher – Process Flow
+
+skinparam activity {
+  BackgroundColor<<fail>> #F8CECC
+  BorderColor<<fail>> #B85450
+  BackgroundColor<<ok>> #D5E8D4
+  BorderColor<<ok>> #82B366
+}
+
+|Client|
+start
+:POST /upload-xml
+(multipart/form-data,
+one or more "file" parts);
+
+|Controller|
+:XmlToJsonPublisherController.uploadXml;
+:For each uploaded MultipartFile,
+call XmlProcessorService.processXmlContent(fileName, bytes);
+note right
+  Each call is @Async – dispatched to the
+  ThreadPoolTaskExecutor (AsyncConfiguration).
+  Pool size & queue capacity = ASYNC_POOL_SIZE.
+  RejectedExecutionHandler = CallerRunsPolicy,
+  so once pool+queue are full the calling
+  (request) thread runs the task itself
+  instead of the request failing.
+end note
+
+fork
+|#LightBlue|Async Worker (per file)|
+:Extract content_id via StAX pull-parser
+(XmlUtil.getXmlAttributeValueFromStream);
+note right
+  Fresh XMLInputFactory per call – not a
+  shared bean (thread-unsafe symbol table
+  cache). DTD & external entities disabled
+  (XXE / billion-laughs mitigation).
+end note
+
+if (content_id present\nand non-blank?) then (no)
+  :FileOutcome(fileName, false,\n"Content ID is empty.");<<fail>>
+  stop
+else (yes)
+endif
+
+:Acquire ReentrantLock for this content_id
+(ContentLockRegistry);
+note right
+  Per-content_id lock, not a global lock –
+  concurrent uploads of *different*
+  content_ids still run fully in parallel.
+end note
+
+if (Saver.exists(content_id)?\n(re-checked now that\nthe lock is held)) then (yes)
+  :Release lock;
+  :FileOutcome(fileName, false,\nAlreadyProcessedException message);<<fail>>
+  stop
+else (no)
+endif
+
+:Validate against XSD
+(XmlValidator + Schema bean,\nJavaxXmlConfiguration);
+note right
+  Schema is the thread-safe singleton bean;
+  a fresh Validator (schema.newValidator())
+  is created per call.
+end note
+
+if (schema valid?) then (no)
+  :Release lock;
+  :FileOutcome(fileName, false,\nSAXException message);<<fail>>
+  stop
+else (yes)
+endif
+
+:Transform XML → JSON
+(XmlTransformer: Saxon-HE Xslt30Transformer
+running judgment-to-json.xsl,
+XSLT 3.0 xsl:map / array{} → JSON);
+:Deserialize JSON → NormalizedJudgment
+(Jackson ObjectMapper);
+note right
+  XsltExecutable is the thread-safe singleton
+  bean (compiled once at startup); a fresh
+  Xslt30Transformer (xsltExecutable.load30())
+  is created per call – reusing one across
+  threads would silently corrupt output.
+end note
+
+:Derive RAG-ready text
+(RagTransformer: StrategyOneRagTransformer –
+title as header line, paragraphs joined
+by blank lines);
+
+:Save outputs to disk
+($DISK_SAVER_PATH/<content_id>/<content_id>.json
+$DISK_SAVER_PATH/<content_id>/<content_id>.txt)
+(Saver: DiskSaver);
+
+:Release lock;
+:FileOutcome(fileName, true, null);<<ok>>
+stop
+
+end fork
+
+|Controller|
+:Join all per-file CompletableFutures;
+:Return 200 OK with
+List<FileOutcome> body;
+
+|Client|
+:Receive per-file success/failure report;
+stop
+
+@enduml
