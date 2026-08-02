@@ -587,3 +587,44 @@ A DTD (Document Type Definition) is XML's original schema mechanism, predating X
   - OWASP — XML External Entity (XXE) Processing
 
 ```
+`prompt`: What makes XMLInputFactory not thread safe ?
+```
+he mechanism is a shared, mutable cache living on the factory itself — specifically a symbol table.
+
+  What a symbol table is, and why parsers have one
+
+  XML documents repeat the same names constantly — every <p>, every <citation>, every type/role/id attribute name. Rather than allocating a new String object every single time a parser
+  encounters "citation" for the hundredth time, StAX implementations maintain a symbol table: an interning structure (essentially a specialized hash table) that canonicalizes each
+  distinct name to one shared String instance. First occurrence of a name → insert into the table. Every subsequent occurrence → look it up and reuse the same reference. This matters
+  for both memory (no duplicate string allocations) and speed (internal comparisons can use == instead of .equals() once names are interned).
+
+  Why that makes the factory unsafe to share
+
+  Per Woodstox's own documentation of this design: "Most caching is done on per-factory basis: specifically, symbol tables are cached this way." That's the key detail — the symbol
+  table isn't scoped to one XMLStreamReader instance, it's attached to the factory, precisely so multiple readers created from the same factory can share and benefit from it across
+  many parses. That sharing is why factory reuse is recommended for performance in the first place — constructing a fresh factory (and fresh symbol table) every time throws away
+  exactly the cache that makes reuse worthwhile.
+
+  But that shared table is being read from and written into during parsing — every reader created from that factory inserts newly-seen names and looks up previously-seen ones, live, as
+  it parses. If two XMLStreamReaders created from the same factory are parsing two different documents on two different threads at the same time, both are mutating that same
+  underlying hash structure concurrently, with no synchronization. That's a plain unsynchronized-concurrent-mutation bug on a shared collection — the same fundamental problem as two
+  threads calling put() on a non-concurrent HashMap at once: internal structure corruption, wrong lookups, or an exception from a table caught mid-resize, depending on the exact
+  interleaving.
+
+  That last point is worth sitting with: this is why bug 2 would behave differently from bug 1 if it ever surfaced. Your stream-reuse bug was 100% deterministic — same wrong result
+  every single time, easy to catch. This one is timing-dependent — it only misbehaves when two threads happen to touch the shared table at the same moment, which is exactly the kind of
+  bug that passes every manual test and then fails intermittently under real concurrent load, at the worst possible time to debug it.
+
+  One nuance worth knowing
+
+  Woodstox specifically engineered around this — their factories are documented as thread-safe for concurrent createXMLStreamReader() calls, but only after configuration is finished
+  (i.e., after your setProperty() calls are done, which matches your usage — you configure once in the @Bean method, then it's used repeatedly). That's a deliberate guarantee Woodstox
+  chose to build. The JDK's own bundled default StAX implementation (what XMLInputFactory.newFactory() resolves to unless you've put a different provider like Woodstox on the
+  classpath) doesn't universally document that same promise — hence the "not thread-safe, at least with the default properties" language from the JDK-specific reports we found earlier.
+  So relying on shared-factory-is-safe would mean betting on the specific JAXP provider the JVM happens to resolve, which isn't something you control or want to depend on implicitly —
+  exactly why "construct fresh" is the portable answer regardless of which implementation ends up on the classpath.
+
+  Sources:
+  - Woodstox4 USAGE notes (FasterXML) — per-factory symbol table/DTD caching, and the "thread-safe after configuration" guarantee specific to Woodstox.
+  - Is XMLInputFactory Thread-Safe? — CodingTechRoom 
+```

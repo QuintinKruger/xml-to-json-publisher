@@ -2,6 +2,7 @@ package org.example.xmltojsonpublisher.validation;
 
 import org.example.xmltojsonpublisher.core.saver.Saver;
 import org.example.xmltojsonpublisher.exception.AlreadyProcessedException;
+import org.example.xmltojsonpublisher.util.XmlUtil;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,35 +41,11 @@ public class XmlValidator {
     }
 
     public void validateNotPreviouslyProcessed(InputStream inputStream) throws XMLStreamException {
-        Optional<String> optionalContentId = getContentIdFromXmlInputStream(inputStream);
+        Optional<String> optionalContentId = XmlUtil.getXmlAttributeValueFromStream("content_id", inputStream);
         if (optionalContentId.isPresent() && saver.exists(optionalContentId.get())) {
             throw new AlreadyProcessedException(optionalContentId.get());
         }
 
-    }
-
-    private Optional<String> getContentIdFromXmlInputStream(InputStream inputStream) throws XMLStreamException {
-        XMLStreamReader xmlStreamReader = getXmlInputFactory().createXMLStreamReader(inputStream);
-        try {
-            while (xmlStreamReader.hasNext()) {
-                if (xmlStreamReader.next() == XMLStreamConstants.START_ELEMENT
-                        && "content_id".equals(xmlStreamReader.getLocalName())) {
-                    return Optional.of(xmlStreamReader.getElementText());
-                }
-            }
-            return Optional.empty();
-        } finally {
-            xmlStreamReader.close();
-        }
-    }
-
-    private static XMLInputFactory getXmlInputFactory() {
-        // thread safety is not guaranteed due to internal caching, construct new factory rather than use singleton bean
-        XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
-        // disable DTD support to prevent against XML External Entity (XXE) injection attack and the exponential entity expansion attack, also know as the XML bomb or billion laughs attack.
-        xmlInputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        xmlInputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        return xmlInputFactory;
     }
 
     private Validator getSchemaValidator() {
